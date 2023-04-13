@@ -2,24 +2,31 @@ import random
 
 
 class Rule:
+    # 规则基础类，定义每种规则的必要参量
     def __init__(self, digit_num, max_digit):
+        # 规则名，以及规则所作用的数字范围
         self.name = None
         self.digit_num = digit_num
         self.max_digit = max_digit
 
     def get_random(self):
+        # 随机将自身进行初始化
         raise NotImplementedError()
 
     def generate_from(self, num):
+        # 生成一个让num符合的规则实例
         raise NotImplementedError()
 
     def judge(self, num):
+        # 输入num，判断是否符合此规则
         raise NotImplementedError()
 
     def description(self, *args, **kwargs):
+        # 规则的文本化说明
         raise NotImplementedError()
 
     def detail(self, *args, **kwargs):
+        # 在有blur参数时，给出所有可能的规则。
         raise NotImplementedError()
 
 
@@ -327,4 +334,5 @@ class Counting(Rule):
         raise NotImplementedError()
 
 
+# 用一个list包装所有的rule对象
 AllRules = [SingleCompare, SingleJudge]

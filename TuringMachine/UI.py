@@ -7,6 +7,8 @@ from game import Logic
 class TuringUI(Frame):
     def __init__(self, master, root, digit_num=3, max_digit=5):
         super().__init__(master)
+
+        # 基础窗体结构
         self.game_panel = Frame(self)
         self.place(relx=0, rely=0, relheight=1, relwidth=1)
         self.game_panel.place(relx=0.05, rely=0.025, relheight=0.6, relwidth=0.5)
@@ -14,20 +16,25 @@ class TuringUI(Frame):
         self.history_panel.place(relx=0.05, rely=0.675, relheight=0.3, relwidth=0.9)
         self.root = root
 
+        # 基础规则参数
         self.digit_num = digit_num
         self.max_digit = max_digit
 
+        # 初始化逻辑内核
         self.logic = Logic(self.digit_num, self.max_digit)
         self.num = None
         self.rules = []
 
+        # 状态变量
         self.current_digit = [1] * self.digit_num
         self.rule_selection = [False] * 6
         self.validated = [0] * 6
         self.validate_timer = 0
         self.last_click = None
         self.validate_history = []
+        self.history_labels = []
 
+        # 大部分的ui对象在此函数内定义
         self.create_widgets()
 
         # 0: 选单, 1: 主游戏, 2: 教程
@@ -38,9 +45,10 @@ class TuringUI(Frame):
         self.update_display()
 
     def create_widgets(self):
-        # 选单部分
+        # ---选单部分---
         self.menu_frame = Frame()
-        # 主游戏部分
+
+        # ---主游戏部分---
         # 数字显示和切换数字的箭头
         self.game_components = []
         self.digit_labels = []
@@ -89,18 +97,20 @@ class TuringUI(Frame):
         self.info_box = Text(self, state=DISABLED, height=18, width=30, relief='ridge', font=('微软雅黑', 12))
         self.info_box.place(relx=0.75, rely=0.35, anchor=CENTER)
 
-        self.history_labels = []
-
         self.game_components.append(self.check_button)
         self.game_components.append(self.submit_button)
         self.game_components.append(self.info_box)
 
     def update_display(self):
+        # 主更新函数，每50ms进行一次更新
+        # 数字显示
         for i in range(self.digit_num):
             self.digit_labels[i]['text'] = self.current_digit[i]
 
+        # 规则显示
         for i in range(len(self.rules)):
             self.rule_boxes[i]['text'] = self.rules[i].description()
+            # 这部分是validation时的动态颜色变化逻辑
             if self.validated[i] == 1:
                 self.rule_boxes[i]['bg'] = '#%02x%02x%02x' % (
                     200 - int(128 * self.validate_timer / 60), 240, 200 - int(128 * self.validate_timer / 60))
@@ -110,11 +120,13 @@ class TuringUI(Frame):
             else:
                 self.rule_boxes[i]['bg'] = '#%02x%02x%02x' % (240, 240, 240)
 
+            # 规则被选中时的边框加粗特效
             if self.rule_selection[i]:
                 self.rule_boxes[i]['borderwidth'] = 5
             else:
                 self.rule_boxes[i]['borderwidth'] = 2
 
+        # 信息框内容更新
         self.info_box.config(state=NORMAL)
         self.info_box.delete(0.0, END)
         self.info_box.insert(0.0, self.get_info())
@@ -127,16 +139,19 @@ class TuringUI(Frame):
         self.after(50, self.update_display)
 
     def clear_history_display(self):
+        # 历史验证记录中的label实例销毁
         for label in self.history_labels:
             label.destroy()
 
     def clear_history(self):
+        # 清空历史验证记录
         self.clear_history_display()
         self.validate_history = []
         self.history_labels = []
         self.update_history()
 
     def update_history(self):
+        # 主窗口下方的历史验证记录显示，仅在每次进行validation时才调用
         self.clear_history_display()
         for i in range(len(self.validate_history)):
             num_str = ''
@@ -160,6 +175,7 @@ class TuringUI(Frame):
         self.root.update()
 
     def change_digit(self, idx, delta):
+        # 改变当前选中数字的回调函数，绑定到数字显示区的上下箭头
         self.current_digit[idx] += delta
         if self.current_digit[idx] == 0:
             self.current_digit[idx] = self.max_digit
@@ -168,6 +184,7 @@ class TuringUI(Frame):
         self.reset_validation()
 
     def change_rule_selection(self, idx, e):
+        # 改变规则选中状态的回调函数，绑定到规则框的被点击事件
         if idx >= len(self.rules):
             return
         self.last_click = idx
@@ -179,6 +196,7 @@ class TuringUI(Frame):
         self.rule_selection[idx] = not self.rule_selection[idx]
 
     def new_game(self):
+        # 生成一局新游戏
         self.num, self.rules = self.logic.pick_rules()
         for i in range(6):
             self.rule_boxes[i]['text'] = ''
@@ -193,6 +211,7 @@ class TuringUI(Frame):
         self.clear_history()
 
     def check_answer(self):
+        # 确认当前显示的数字是否正确
         correct = True
         for i in range(self.digit_num):
             if self.num[i] != self.current_digit[i]:
@@ -201,6 +220,7 @@ class TuringUI(Frame):
         self.new_game()
 
     def validate_answer(self):
+        # 验证当前显示的数字是否符合当前被选中的若干条规则
         validation = [None] * len(self.rules)
         for i in range(len(self.rules)):
             rule = self.rules[i]
@@ -218,12 +238,14 @@ class TuringUI(Frame):
         self.validate_timer = 60
 
     def get_info(self):
+        # 信息显示，现在是用来显示最后一次点击的规则有几种可能变体
         if self.last_click is None:
             return ''
         else:
             return self.rules[self.last_click].detail()
 
     def reset_validation(self):
+        # 生成新游戏时的复位函数
         for i in range(len(self.validated)):
             self.validated[i] = 0
 

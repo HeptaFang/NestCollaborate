@@ -4,12 +4,11 @@ from rule import AllRules
 
 
 class Logic:
-    def __init__(self, digit_num, max_digit, n_rules=None, max_group_size=10, min_group_size=3):
+    # 游戏逻辑内核，现在暂时仅用于生成一组可以唯一确定数字的规则，之后可能考虑将全部逻辑内容合并到此处。
+    def __init__(self, digit_num, max_digit, n_rules=None):
         self.digit_num = digit_num
         self.max_digit = max_digit
         self.n_rules = n_rules
-        self.max_group_size = max_group_size
-        self.min_group_size = min_group_size
 
         self.all_nums = []
         self.generate_all_nums()
