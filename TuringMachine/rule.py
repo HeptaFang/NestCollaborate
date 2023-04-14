@@ -1,5 +1,7 @@
 import random
 
+mask = '■'
+
 
 class Rule:
     # 规则基础类，定义每种规则的必要参量
@@ -73,21 +75,21 @@ class SingleCompare(Rule):
 
     def description(self):
         item1_str = -self.item1
-        operator_str = ['小于', '等于', '大于'][self.operator + 1]
+        operator_str = ['小', '等', '大'][self.operator + 1]
         if self.item2 > 0:
             item2_str = self.item2
         else:
             item2_str = -self.item2
 
         if self.blur[0]:
-            item1_str = '■'
+            item1_str = mask
         if self.blur[1]:
-            operator_str = '■于'
+            operator_str = mask
         if self.blur[2]:
-            item2_str = '■'
+            item2_str = mask
 
         if self.item2 > 0:
-            return f'第{item1_str}位{operator_str}{item2_str}'
+            return f'第{item1_str}位{operator_str}于{item2_str}'
         else:
             return f'第{item1_str}位{operator_str}第{item2_str}位'
 
@@ -95,11 +97,11 @@ class SingleCompare(Rule):
         all_possible = []
         if self.item2 > 0:
             possible_choice = [list(range(1, self.digit_num + 1)),
-                               ['小于', '等于', '大于'],
+                               ['小', '等', '大'],
                                list(range(1, self.max_digit + 1))]
         else:
             possible_choice = [list(range(1, self.digit_num + 1)),
-                               ['小于', '等于', '大于'],
+                               ['小', '等', '大'],
                                list(range(1, self.digit_num + 1))]
 
         possible_num = 1
@@ -107,7 +109,7 @@ class SingleCompare(Rule):
             if self.blur[i]:
                 possible_num *= len(possible_choice[i])
 
-        item_str = [-self.item1, ['小于', '等于', '大于'][self.operator + 1], 0]
+        item_str = [-self.item1, ['小', '等', '大'][self.operator + 1], 0]
         if self.item2 > 0:
             item_str[2] = self.item2
         else:
@@ -121,7 +123,7 @@ class SingleCompare(Rule):
                     a = a // len(possible_choice[j])
 
             if self.item2 > 0:
-                all_possible.append(f'第{item_str[0]}位{item_str[1]}{item_str[2]}')
+                all_possible.append(f'第{item_str[0]}位{item_str[1]}于{item_str[2]}')
             else:
                 all_possible.append(f'第{item_str[0]}位{item_str[1]}第{item_str[2]}位')
 
@@ -185,7 +187,7 @@ class SingleJudge(Rule):
         judge_str = ['偶数', '奇数', '唯一最小值', '唯一最大值', '最小值或并列最小值', '最大值或并列最大值'][self.judge_type]
 
         if self.blur[0]:
-            idx_str = '■'
+            idx_str = mask
         return f'第{idx_str}位为{judge_str}'
 
     def detail(self):
@@ -239,10 +241,34 @@ class PlusJudge(Rule):
         raise NotImplementedError()
 
     def judge(self, num):
-        raise NotImplementedError()
+        s = num[self.idx1] + num[self.idx2]
+        if self.judge_type == 0:
+            return s % 2 == 0
+        elif self.judge_type == 1:
+            return s % 2 == 1
+        elif self.judge_type == 2:
+            return s < self.max_digit + 1
+        elif self.judge_type == 3:
+            return s == self.max_digit + 1
+        elif self.judge_type == 4:
+            return s > self.max_digit + 1
 
     def description(self, *args, **kwargs):
-        raise NotImplementedError()
+        str_idx1 = self.idx1
+        str_idx2 = self.idx2
+        str_type = ['偶', '奇', '小', '等', '大'][self.judge_type]
+
+        if self.blur[0]:
+            str_idx1 = mask
+        if self.blur[1]:
+            str_idx2 = mask
+        if self.blur[2]:
+            str_type = mask
+
+        if self.judge_type in [0, 1]:
+            return f'第{str_idx1}位和第{str_idx2}位之和为{str_type}数'
+        elif self.judge_type in [2, 3, 4]:
+            return f'第{str_idx1}位和第{str_idx2}位之和{str_type}于{self.max_digit + 1}'
 
     def detail(self, *args, **kwargs):
         raise NotImplementedError()
@@ -267,10 +293,31 @@ class SumJudge(Rule):
         raise NotImplementedError()
 
     def judge(self, num):
-        raise NotImplementedError()
+        s = 0
+        for digit in num:
+            s += digit
+
+        if self.judge_type == 0:
+            return s % 2 == 0
+        elif self.judge_type == 1:
+            return s % 2 == 1
+        elif self.judge_type == 2:
+            return s % 3 == 0
+        elif self.judge_type == 3:
+            return s % 4 == 0
+        elif self.judge_type == 4:
+            return s % 5 == 0
 
     def description(self, *args, **kwargs):
-        raise NotImplementedError()
+        str_type = ['偶', '奇', '3', '4', '5'][self.judge_type]
+
+        if self.blur[0]:
+            str_type = mask
+
+        if self.judge_type in [0, 1]:
+            return f'所有数字之和为{str_type}数'
+        elif self.judge_type in [2, 3, 4]:
+            return f'所有数字之和为{str_type}的倍数'
 
     def detail(self, *args, **kwargs):
         raise NotImplementedError()
@@ -298,10 +345,72 @@ class StructureJudge(Rule):
         raise NotImplementedError()
 
     def judge(self, num):
-        raise NotImplementedError()
+        if self.judge_type_major == 0:
+            order_state = -1
+            for i in range(1, self.digit_num):
+                if num[i] > num[i - 1]:
+                    if order_state in [1, 2]:
+                        order_state = 2
+                    else:
+                        order_state = 0
+                elif num[i] < num[i - 1]:
+                    if order_state in [0, 2]:
+                        order_state = 2
+                    else:
+                        order_state = 1
+                else:
+                    order_state = 2
+            return order_state == self.judge_type_minor
+
+        elif self.judge_type_major == 1:
+            digit_count = [0] * self.digit_num
+            for digit in num:
+                digit_count[digit - 1] += 1
+            max_count = max(digit_count)
+            return max_count == self.judge_type_minor
+
+        elif self.judge_type_major == 2:
+            max_len = 1
+            current_len = 1
+            current_direction = 'none'
+            for i in range(1, self.digit_num):
+                if num[i] == num[i - 1] + 1:
+                    if current_direction == 'up':
+                        current_len += 1
+                    else:
+                        current_direction = 'up'
+                        current_len = 2
+                elif num[i] == num[i - 1] - 1:
+                    if current_direction == 'down':
+                        current_len += 1
+                    else:
+                        current_direction = 'down'
+                        current_len = 2
+                else:
+                    current_len = 1
+                    current_direction = 'none'
+                if current_len > max_len:
+                    max_len = current_len
+            return max_len == self.judge_type_minor
 
     def description(self, *args, **kwargs):
-        raise NotImplementedError()
+        if self.judge_type_major == 0:
+            str_type = ['升', '降', '无'][self.judge_type_minor]
+            if self.blur[0]:
+                str_type = mask
+            return f'数字序列为{str_type}序'
+
+        elif self.judge_type_major == 1:
+            str_type = self.judge_type_minor
+            if self.blur[0]:
+                str_type = mask
+            return f'重复数字最多出现{str_type}次'
+
+        elif self.judge_type_major == 2:
+            str_type = self.judge_type_minor
+            if self.blur[0]:
+                str_type = mask
+            return f'最长连续序列长度为{str_type}'
 
     def detail(self, *args, **kwargs):
         raise NotImplementedError()
@@ -325,10 +434,22 @@ class Counting(Rule):
         raise NotImplementedError()
 
     def judge(self, num):
-        raise NotImplementedError()
+        count = 0
+        for digit in num:
+            if digit == self.digit:
+                count += 1
+        return count == self.count
 
     def description(self, *args, **kwargs):
-        raise NotImplementedError()
+        str_digit = self.digit
+        str_count = self.count
+
+        if self.blur[0]:
+            str_digit = mask
+        if self.blur[1]:
+            str_count = mask
+
+        return f'数字{str_digit}出现了{str_count}次'
 
     def detail(self, *args, **kwargs):
         raise NotImplementedError()
